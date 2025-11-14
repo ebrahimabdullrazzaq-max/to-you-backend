@@ -9,26 +9,27 @@ class Store extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'name',
-        'category_id',
-        'address',
-        'latitude',
-        'longitude',
-        'phone',
-        'image',
-        'is_active',
-        'total_ratings',
-        'rating_sum',
-        'average_rating',
-        'opening_time',
-        'closing_time',
-        'is_open',
-        'delivery_time_min',
-        'delivery_time_max',
-        'is_favorite', // ADD THIS
-        'is_new',      // ADD THIS
-    ];
+   protected $fillable = [
+    'name',
+    'category_id',
+    'address',
+    'city', // 👈 ADD THIS
+    'latitude',
+    'longitude',
+    'phone',
+    'image',
+    'is_active',
+    'total_ratings',
+    'rating_sum',
+    'average_rating',
+    'opening_time',
+    'closing_time',
+    'is_open',
+    'delivery_time_min',
+    'delivery_time_max',
+    'is_favorite',
+    'is_new',
+];
 
     protected $casts = [
         'is_active' => 'boolean',

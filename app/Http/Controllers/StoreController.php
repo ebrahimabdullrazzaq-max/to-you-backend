@@ -90,7 +90,7 @@ public function getByCategory($categoryId, Request $request)
 
         $query = Store::where('category_id', $categoryId)->where('is_active', true);
         if ($city) {
-            $query->where('address', 'like', "%$city%");
+            $query->where('city', $city); // 👈 CHANGE THIS from address to city
         }
 
         $stores = $query->withAvg('ratings', 'rating')->withCount('ratings')->get();
@@ -100,15 +100,16 @@ public function getByCategory($categoryId, Request $request)
                 'id' => $store->id,
                 'name' => $store->name,
                 'image' => $store->image ? asset('storage/' . $store->image) : null,
+                'city' => $store->city, // 👈 ADD THIS
                 'address' => $store->address,
                 'latitude' => $store->latitude,
                 'longitude' => $store->longitude,
                 'phone' => $store->phone ?? 'N/A',
                 'is_active' => $store->is_active,
                 'is_favorite' => (bool)($store->is_favorite ?? false),
-                'is_new' => (bool)($store->is_new ?? false), // ✅ MAKE SURE THIS IS INCLUDED
+                'is_new' => (bool)($store->is_new ?? false),
                 'opening_hour' => $store->opening_hour ?? 7,
-                'opening_minute' => $store->opening_minute ?? 30,
+                'opening_minute' => $store->opening_minute ?? 0,
                 'closing_hour' => $store->closing_hour ?? 23,
                 'closing_minute' => $store->closing_minute ?? 0,
                 'delivery_time_min' => $store->delivery_time_min ?? 30,
@@ -116,7 +117,7 @@ public function getByCategory($categoryId, Request $request)
                 'average_rating' => $store->ratings_avg_rating ? round($store->ratings_avg_rating, 1) : 0.0,
                 'rating_count' => $store->ratings_count ?? 0,
                 'category_id' => $store->category_id,
-                'is_open' => $store->is_open, // ✅ ADD THIS
+                'is_open' => $store->is_open,
             ];
         });
 
@@ -137,12 +138,14 @@ public function getByCategory($categoryId, Request $request)
     /**
      * Add new store
      */
-   public function store(Request $request)
+// In your StoreController - store method
+public function store(Request $request)
 {
     $request->validate([
         'name' => 'required|string|max:255',
         'category_id' => 'required|exists:categories,id',
-        'address' => 'required|string',
+        'city' => 'required|string', // Make sure this exists
+        'address' => 'nullable|string',
         'latitude' => 'required|numeric',
         'longitude' => 'required|numeric',
         'phone' => 'required|string|max:20',
@@ -159,6 +162,7 @@ public function getByCategory($categoryId, Request $request)
         $store = Store::create([
             'name' => $request->name,
             'category_id' => $request->category_id,
+            'city' => $request->city, // Make sure this is included
             'address' => $request->address,
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
@@ -166,15 +170,15 @@ public function getByCategory($categoryId, Request $request)
             'image' => $imagePath,
             'is_active' => true,
             'is_favorite' => $request->boolean('is_favorite', false),
-            'is_new' => $request->boolean('is_new', true), // CHANGED: Default to true
-            'opening_hour' => $request->opening_hour ?? 6,
-            'opening_minute' => $request->opening_minute ?? 30,
-            'closing_hour' => $request->closing_hour ?? 2,
+            'is_new' => $request->boolean('is_new', true),
+            'opening_hour' => $request->opening_hour ?? 7,
+            'opening_minute' => $request->opening_minute ?? 0,
+            'closing_hour' => $request->closing_hour ?? 23,
             'closing_minute' => $request->closing_minute ?? 0,
             'delivery_time_min' => $request->delivery_time_min ?? 30,
             'delivery_time_max' => $request->delivery_time_max ?? 60,
         ]);
-
+        
         return response()->json([
             'success' => true,
             'message' => 'Store created successfully',
@@ -194,7 +198,7 @@ public function getByCategory($categoryId, Request $request)
     /**
      * Update store
      */
-  public function update(Request $request, $id)
+public function update(Request $request, $id)
 {
     try {
         $store = Store::findOrFail($id);
@@ -202,7 +206,8 @@ public function getByCategory($categoryId, Request $request)
         $request->validate([
             'name' => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
-            'address' => 'required|string',
+            'city' => 'required|string', // 👈 ADD THIS
+            'address' => 'nullable|string', // 👈 Change to nullable
             'latitude' => 'required|numeric',
             'longitude' => 'required|numeric',
             'phone' => 'required|string|max:20',
@@ -222,13 +227,14 @@ public function getByCategory($categoryId, Request $request)
         $store->update([
             'name' => $request->name,
             'category_id' => $request->category_id,
+            'city' => $request->city, // 👈 ADD THIS
             'address' => $request->address,
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'phone' => $request->phone,
             'image' => $imagePath,
             'is_favorite' => $request->boolean('is_favorite', $store->is_favorite),
-            'is_new' => $request->boolean('is_new', $store->is_new), // CHANGED: Use existing value as default
+            'is_new' => $request->boolean('is_new', $store->is_new),
             'opening_hour' => $request->opening_hour ?? $store->opening_hour,
             'opening_minute' => $request->opening_minute ?? $store->opening_minute,
             'closing_hour' => $request->closing_hour ?? $store->closing_hour,
@@ -282,13 +288,14 @@ public function getByCategory($categoryId, Request $request)
     /**
      * Format store response
      */
-  private function formatStore(Store $store)
+private function formatStore(Store $store)
 {
     return [
         'id' => $store->id,
         'name' => $store->name,
         'category_id' => $store->category_id,
         'category_name' => $store->category?->name,
+        'city' => $store->city, // 👈 ADD THIS
         'store_categories' => $store->categories->map(fn($c) => [
             'id' => $c->id,
             'name' => $c->name,
@@ -451,5 +458,28 @@ public function getCategories($storeId)
     ], 200);
 }
 
+
+public function getCities()
+{
+    try {
+        $cities = Store::whereNotNull('city')
+            ->where('city', '!=', '')
+            ->distinct()
+            ->pluck('city')
+            ->sort()
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'cities' => $cities
+        ]);
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to fetch cities',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
 
 }

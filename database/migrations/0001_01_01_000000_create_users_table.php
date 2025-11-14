@@ -13,27 +13,48 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->nullable(); // ✅ Nullable — collect after OTP
-            $table->string('email')->nullable(); // ✅ Nullable — not required
-            $table->string('phone')->unique(); // ✅ Required — for login
-            $table->string('password')->nullable(); // ✅ Nullable — no password login
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->string('phone')->nullable();
+            $table->string('password')->nullable(); // ✅ Changed to nullable for Google users
             $table->enum('role', ['admin', 'employer', 'customer'])->default('customer');
-            $table->enum('status', ['pending', 'approved', 'rejected'])->nullable();
+            
+            // ✅ FIXED: Better status handling
+            $table->enum('status', ['active', 'pending', 'approved', 'rejected'])->default('active');
+            
             $table->string('address')->nullable();
             $table->decimal('latitude', 10, 8)->nullable();
             $table->decimal('longitude', 11, 8)->nullable();
+            $table->string('vehicle_type')->nullable(); // ✅ Keep only vehicle_type
+            // REMOVED: vehicle_number column
+            // REMOVED: vehicle_category column
+            $table->integer('max_delivery_distance')->default(20);
+            $table->json('availability')->nullable();
+            $table->string('registration_type')->nullable();
+            $table->string('profile_photo')->nullable();
+            $table->text('bio')->nullable();
+            $table->boolean('is_online')->default(false);
+            $table->boolean('is_available')->default(false);
+            $table->decimal('rating', 3, 2)->default(0.00);
+            $table->integer('total_orders')->default(0);
+            $table->text('admin_notes')->nullable();
+            $table->timestamp('status_changed_at')->nullable();
+            $table->foreignId('status_changed_by')->nullable()->constrained('users');
+            $table->timestamp('phone_verified_at')->nullable();
+            $table->string('google_id')->nullable();
+            $table->string('facebook_id')->nullable();
+            $table->string('apple_id')->nullable();
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes(); // ✅ Added for SoftDeletes
         });
 
-        // Password Reset Tokens Table
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
 
-        // Sessions Table
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
